@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #fafaf9;
+  --foreground: #1c1917;
+  --box-color: #d6ccc2;
+  --box-lid-color: #b7a997;
+  --accent: #84a98c;
+  --accent-warm: #e07a5f;
+  --card-bg: #ffffff;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Georgia', 'Noto Serif SC', serif;
+  min-height: 100vh;
+}
+
+/* 盒子呼吸动画 (loading) */
+@keyframes box-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.animate-box-breathe {
+  animation: box-breathe 2s ease-in-out infinite;
+}
+
+/* 文字变换阶段高亮 */
+.text-unsafe-highlight {
+  color: #dc2626;
+  text-decoration: underline;
+  text-decoration-color: #f87171;
+  text-underline-offset: 2px;
+}
+
+.text-kindness {
+  color: #16a34a;
+}
