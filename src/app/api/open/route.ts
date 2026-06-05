@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
+import { seedGivings } from '@/data/seed-givings';
 import { IS_DEMO_MODE } from '@/lib/constants';
-import { getRandomGiving, getGivingById, insertEvent } from '@/lib/db/queries';
 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const FALLBACK_GIVING = {
@@ -12,23 +13,50 @@ const FALLBACK_GIVING = {
   helpedCount: 0,
 };
 
-export const runtime = 'nodejs';
+const DEMO_FEATURED_GIVING = {
+  id: 'demo_published',
+  content:
+    '给反馈时，先指出一个让你困惑的地方，再给对方一个可以马上尝试的小下一步。',
+  language: 'zh' as const,
+  helpedCount: 0,
+};
+
+function getDemoGiving(excludeIds: string[], featured?: string) {
+  if (featured) {
+    return DEMO_FEATURED_GIVING;
+  }
+
+  const all = seedGivings.map((giving, index) => ({
+    id: `seed_${index}`,
+    content: giving.content,
+    language: giving.language,
+    helpedCount: 0,
+  }));
+
+  const available = all.filter((giving) => !excludeIds.includes(giving.id));
+  const pool = available.length > 0 ? available : all;
+
+  return pool[Math.floor(Math.random() * pool.length)] ?? FALLBACK_GIVING;
+}
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-
-    // 解析 exclude_ids
     const excludeRaw = searchParams.get('exclude_ids') || '';
     const excludeIds = excludeRaw
       ? excludeRaw.split(',').filter((id) => id.length > 0)
       : [];
-
-    // 解析 featured (仅 DEMO_MODE)
     const featured = searchParams.get('featured') || undefined;
 
-    // Demo 模式 + featured 有效 → 返回指定 giving
-    if (IS_DEMO_MODE && featured) {
+    if (IS_DEMO_MODE) {
+      return NextResponse.json(getDemoGiving(excludeIds, featured));
+    }
+
+    const { getRandomGiving, getGivingById, insertEvent } = await import(
+      '@/lib/db/queries'
+    );
+
+    if (featured) {
       const featuredGiving = await getGivingById(featured);
       if (featuredGiving && !featuredGiving.hidden) {
         await insertEvent('open_box');
@@ -41,11 +69,9 @@ export async function GET(request: Request) {
       }
     }
 
-    // 随机取一条
     const giving = await getRandomGiving(excludeIds);
 
     if (!giving) {
-      // 无可用 giving，返回内置 fallback
       return NextResponse.json(FALLBACK_GIVING);
     }
 
